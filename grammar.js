@@ -128,6 +128,7 @@ module.exports = grammar({
 
     octal_integer_literal: _ => token(seq(
       choice('0o', '0O', '0'),
+      optional(/_+/),
       sep1(/[0-7]+/, '_'),
       optional(choice('l', 'L')),
     )),
@@ -141,8 +142,8 @@ module.exports = grammar({
     decimal_floating_point_literal: _ => token(choice(
       seq(DECIMAL_DIGITS, '.', optional(DECIMAL_DIGITS), optional(seq((/[eE]/), optional(choice('-', '+')), DECIMAL_DIGITS)), optional(/[fFdD]/)),
       seq('.', DECIMAL_DIGITS, optional(seq((/[eE]/), optional(choice('-', '+')), DECIMAL_DIGITS)), optional(/[fFdD]/)),
-      seq(DIGITS, /[eE]/, optional(choice('-', '+')), DECIMAL_DIGITS, optional(/[fFdD]/)),
-      seq(DIGITS, optional(seq((/[eE]/), optional(choice('-', '+')), DECIMAL_DIGITS)), (/[fFdD]/)),
+      seq(DECIMAL_DIGITS, /[eE]/, optional(choice('-', '+')), DECIMAL_DIGITS, optional(/[fFdD]/)),
+      seq(DECIMAL_DIGITS, optional(seq((/[eE]/), optional(choice('-', '+')), DECIMAL_DIGITS)), (/[fFdD]/)),
     )),
 
     hex_floating_point_literal: _ => token(seq(
@@ -218,7 +219,7 @@ module.exports = grammar({
         /[^xu0-7]/,
         /[0-7]{1,3}/,
         /x[0-9a-fA-F]{2}/,
-        /u[0-9a-fA-F]{4}/,
+        /u+[0-9a-fA-F]{4}/,
         /u\{[0-9a-fA-F]+\}/,
       ))),
 
@@ -260,6 +261,7 @@ module.exports = grammar({
         $._reserved_identifier,
         $.field_access,
         $.array_access,
+        $.parenthesized_expression,
       )),
       field('operator', choice('=', '+=', '-=', '*=', '/=', '&=', '|=', '^=', '%=', '<<=', '>>=', '>>>=')),
       field('right', $.expression),
@@ -840,7 +842,7 @@ module.exports = grammar({
 
     import_declaration: $ => seq(
       'import',
-      optional('static'),
+      optional(choice('static', 'module')),
       $._name,
       optional(seq('.', $.asterisk)),
       ';',
@@ -978,8 +980,7 @@ module.exports = grammar({
 
     constructor_body: $ => seq(
       '{',
-      optional($.explicit_constructor_invocation),
-      repeat($.statement),
+      repeat(choice($.explicit_constructor_invocation, $.statement)),
       '}',
     ),
 
@@ -1042,6 +1043,7 @@ module.exports = grammar({
         $.annotation_type_element_declaration,
         $.constant_declaration,
         $.class_declaration,
+        $.record_declaration,
         $.interface_declaration,
         $.enum_declaration,
         $.annotation_type_declaration,
@@ -1240,6 +1242,7 @@ module.exports = grammar({
     spread_parameter: $ => seq(
       optional($.modifiers),
       $._unannotated_type,
+      repeat($._annotation),
       '...',
       repeat($._annotation),
       $.variable_declarator,
